@@ -64,6 +64,9 @@ static UInt8* getSubpixelGlyphImage(GlyphInfo *glyph, float x, float y) {
 #define FLOOR_ASSIGN(l, r)\
  if ((r)<0) (l) = ((int)floor(r)); else (l) = ((int)(r))
 
+#define ADJUST_SUBPIXEL_GLYPH_POSITION(coord, res) \
+ if ((res) > 1) (coord) += 0.5f / ((float)(res)) - 0.5f;
+
 GlyphBlitVector* setupBlitVector(JNIEnv *env, jobject glyphlist, jint fromGlyph, jint toGlyph) {
 
     int g;
@@ -115,6 +118,8 @@ GlyphBlitVector* setupBlitVector(JNIEnv *env, jobject glyphlist, jint fromGlyph,
             jfloat py = y + positions[++n];
 
             ginfo = (GlyphInfo*)imagePtrs[g + fromGlyph];
+            ADJUST_SUBPIXEL_GLYPH_POSITION(px, ginfo->subpixelResolutionX);
+            ADJUST_SUBPIXEL_GLYPH_POSITION(py, ginfo->subpixelResolutionY);
             gbv->glyphs[g].glyphInfo = ginfo;
             gbv->glyphs[g].pixels = getSubpixelGlyphImage(ginfo,
                                                           px + ginfo->topLeftX,
@@ -129,16 +134,21 @@ GlyphBlitVector* setupBlitVector(JNIEnv *env, jobject glyphlist, jint fromGlyph,
                                               positions, JNI_ABORT);
     } else {
         for (g=0; g<len; g++) {
+            jfloat px = x;
+            jfloat py = y;
+
             ginfo = (GlyphInfo*)imagePtrs[g + fromGlyph];
+            ADJUST_SUBPIXEL_GLYPH_POSITION(px, ginfo->subpixelResolutionX);
+            ADJUST_SUBPIXEL_GLYPH_POSITION(py, ginfo->subpixelResolutionY);
             gbv->glyphs[g].glyphInfo = ginfo;
             gbv->glyphs[g].pixels = getSubpixelGlyphImage(ginfo,
-                                                          x + ginfo->topLeftX,
-                                                          y + ginfo->topLeftY);
+                                                          px + ginfo->topLeftX,
+                                                          py + ginfo->topLeftY);
             gbv->glyphs[g].width = ginfo->width;
             gbv->glyphs[g].rowBytes = ginfo->rowBytes;
             gbv->glyphs[g].height = ginfo->height;
-            FLOOR_ASSIGN(gbv->glyphs[g].x, x + ginfo->topLeftX);
-            FLOOR_ASSIGN(gbv->glyphs[g].y, y + ginfo->topLeftY);
+            FLOOR_ASSIGN(gbv->glyphs[g].x, px + ginfo->topLeftX);
+            FLOOR_ASSIGN(gbv->glyphs[g].y, py + ginfo->topLeftY);
 
             /* copy image data into this array at x/y locations */
             x += ginfo->advanceX;
