@@ -36,17 +36,22 @@
 
 
 static UInt8* getSubpixelGlyphImage(GlyphInfo *glyph, float x, float y) {
-    if (glyph->subpixelResolutionX <= 1 && glyph->subpixelResolutionY <= 1) {
+    int rx = glyph->subpixelResolutionX;
+    int ry = glyph->subpixelResolutionY;
+    if ((rx == 1 && ry == 1) || rx <= 0 || ry <= 0) {
         return glyph->image;
     }
-    int xOffset = ((int) floor(x * (float) glyph->subpixelResolutionX)) %
-                  glyph->subpixelResolutionX;
-    if(xOffset < 0) xOffset += glyph->subpixelResolutionX;
-    int yOffset = ((int) floor(y * (float) glyph->subpixelResolutionY)) %
-                  glyph->subpixelResolutionY;
-    if(yOffset < 0) yOffset += glyph->subpixelResolutionY;
+    int xOffset;
+    int yOffset;
+    if (x >= 0 && y >= 0) {
+        xOffset = ((int) (x * (float) rx)) % rx;
+        yOffset = ((int) (y * (float) ry)) % ry;
+    } else {
+        xOffset = (int) ((x - (float) floor(x)) * (float) rx);
+        yOffset = (int) ((y - (float) floor(y)) * (float) ry);
+    }
     return glyph->image + (glyph->rowBytes * glyph->height) *
-                          (xOffset + yOffset * glyph->subpixelResolutionX);
+                          (xOffset + yOffset * rx);
 }
 
 /*
